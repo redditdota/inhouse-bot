@@ -150,7 +150,7 @@ function createMatch(reaction, usersInQueue, lobbySize, title){
 
   //find players with the closest skill level
   else{
-
+    
   }
 }
 
