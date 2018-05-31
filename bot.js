@@ -150,9 +150,80 @@ function createMatch(reaction, usersInQueue, lobbySize, title){
 
   //find players with the closest skill level
   else{
-    
+
   }
 }
+
+function linkAccount(message, steam32ID){
+  if(!(!isNaN(parseInt(steam32ID)) && steam32ID.length < 10 && steam32ID.length > 6)){
+    message.reply("invalid steam32ID!\n"+
+      "You can find you id if you go to your opendota profile and the id is the numbers at the end of the url\n\n"+
+      "e.g. opendota.com/players/12345678 , id = 12345678");
+    return;
+  }
+
+  //find estimated mmr using opendota api
+  let url = "https://api.opendota.com/api/players/" + steam32ID;
+  request(url, function (error, response, body) {
+    if (!error && response.statusCode == 200) {
+      let info = JSON.parse(body);
+      //profile not found
+      if(info.profile === undefined || info.profile.profileurl == null){
+        message.reply("No OpenDota account was found with that steam32ID");
+      }
+      else if(info.mmr_estimate !== undefined){
+        let mmr = parseInt(info.mmr_estimate.estimate);
+        //if estimated mmr is not an integer
+        if(isNaN(mmr)){
+          message.reply("No estimated MMR was found for this OpenDota account");
+        }
+        else{
+          console.log("adding account");
+          addAccount(message, message.author.id, steam32ID, mmr);
+        }
+      }
+      else{
+        message.reply("No estimated MMR was found for this OpenDota account");
+      }
+    }
+    else{
+      console.log("request error");
+    }
+  });
+}
+
+/*
+adds a users mmr to account table
+
+account table:
+userID: discord user id
+steam32ID
+mmr : match making rating
+submitTime : epoch time of the time the mmr was last submitted
+*/
+function addAccount(message, userID, steam32ID, mmr){
+  sql.run("REPLACE INTO accounts (userID, steam32ID, mmr, submitTime) VALUES (?, ?, ?, ?)",
+    [userID, steam32ID, mmr, (new Date).getTime()]).then(()=>{
+      message.reply("Success! Thank you for linking your MMR");
+  }).catch(()=>{
+    sql.run("CREATE TABLE IF NOT EXISTS accounts (userID TEXT PRIMARY KEY, steam32ID TEXT, mmr INTEGER, submitTime INTEGER)").then(() => {
+      sql.run("INSERT INTO accounts (userID, steam32ID, mmr, submitTime) VALUES (?, ?, ?, ?)",
+        [userID, steam32ID, mmr, (new Date).getTime()]).then(() =>{
+          message.reply("Success! Thank you for linking your MMR");
+        });
+    });
+  });
+}
+
+//query a users mmr
+function checkMMR(message, userID){
+  sql.get("SELECT * FROM accounts WHERE userID='"+userID+"'").then(row=>{
+    if(row){
+      message.reply("Your MMR: " + row.mmr);
+    }
+  }).catch(console.error);
+}
+
 
 client.on("ready", () => {
   console.log(botName + " ready!");
@@ -183,6 +254,19 @@ client.on("message", message => {
       inhouse(message, args);
     }
 
+    else if(message.content.startsWith(prefix + "link")){
+      if(args[1] === undefined){
+        message.reply("no id given you must use the command like this:\n "+prefix + "link 12345677");
+      }
+      else{
+        linkAccount(message, args[1]);
+      }
+    }
+
+    else if(message.content.startsWith(prefix + "mmr")){
+      checkMMR(message, message.author.id);
+    }
+
     //help command
     else if(args[0] == prefix + "help"){
       message.reply({ embed : {
@@ -195,7 +279,7 @@ client.on("message", message => {
           "players will be able to join the queue upto 120 mins after the first matches start\n"+
           "----------\n"+
           prefix + "inhouse clear\n"+
-          "this will clear all the existing inhouse queues"
+          "this will clear all the existing inhouse queues"+
 
           "**Note**: All number values are in minutes and must be integers"
         }
