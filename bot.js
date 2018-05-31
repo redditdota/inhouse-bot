@@ -219,11 +219,12 @@ function addAccount(message, userID, steam32ID, mmr){
 function checkMMR(message, userID){
   sql.get("SELECT * FROM accounts WHERE userID='"+userID+"'").then(row=>{
     if(row){
-      message.reply("Your MMR: " + row.mmr);
+      message.reply("MMR: " + row.mmr);
     }
   }).catch(console.error);
 }
 
+//returns true if the user has an admin role
 function isAdmin(message){
   for(let i in adminRoles){
     if(message.member.roles.find("name", adminRoles[i])){
@@ -233,7 +234,7 @@ function isAdmin(message){
   return false;
 }
 
-
+//when the bot enters the ready state
 client.on("ready", () => {
   console.log(botName + " ready!");
 
@@ -247,7 +248,7 @@ client.on("ready", () => {
 
 });
 
-
+//when a message is recieved
 client.on("message", message => {
   //command
   if(message.content.startsWith(prefix)){
@@ -292,7 +293,15 @@ client.on("message", message => {
     }
 
     else if(message.content.startsWith(prefix + "mmr")){
-      checkMMR(message, message.author.id);
+      if(args.length == 2){
+        if(args[1].match(/\<@[0-9]+\>/g)){
+          let userID = args[1].substr(2,args[1].length-3);
+          checkMMR(message, userID);
+        }
+      }
+      else if(args.length == 1){
+        checkMMR(message, message.author.id);
+      }
     }
 
     //help command
@@ -304,7 +313,8 @@ client.on("message", message => {
           description :
             "Use the commands below for more help:\n\n"+
             "**" + prefix + "help inhouse** - creating an inhouse\n"+
-            "**" + prefix + "help link** - linking MMR"
+            "**" + prefix + "help link** - linking MMR\n"+
+            "**" + prefix + "help mmr** - check MMR"
         }});
       }
 
@@ -336,6 +346,16 @@ client.on("message", message => {
               "**" + prefix + "link steam32ID** - link your MMR using OpenDota\n"+
               "**" + prefix + "link @user mmr** - (ADMIN ONLY)\n"
           }});
+        }
+        else if(helpCommand == "mmr"){
+          message.reply({ embed : {
+            color : color,
+            title : "Command Help - " + helpCommand,
+            description :
+            "**" + prefix + "mmr** - gets your mmr\n"+
+            "**" + prefix + "mmr @user** - gets the users mmr\n"
+            }
+          });
         }
       }
     }
