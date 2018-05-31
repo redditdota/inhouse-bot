@@ -297,21 +297,47 @@ client.on("message", message => {
 
     //help command
     else if(args[0] == prefix + "help"){
-      message.reply({ embed : {
-        color : color,
-        title : "Inhouse Command Help",
-        description :
-          prefix + "inhouse lobbySize duration initalDelay title\n\n" +
-          "**Example**: \n" + prefix + "inhouse 10 120 5 r/Dota2 Inhouse!\n\n"+
-          "The example above will open an inhouse queue and wait for 5 mins before the first matches start and "+
-          "players will be able to join the queue upto 120 mins after the first matches start\n"+
-          "----------\n"+
-          prefix + "inhouse clear\n"+
-          "this will clear all the existing inhouse queues"+
+      if(args.length == 1){
+        message.reply({ embed : {
+          color : color,
+          title : "Inhouse Bot - Help",
+          description :
+            "Use the commands below for more help:\n\n"+
+            "**" + prefix + "help inhouse** - creating an inhouse\n"+
+            "**" + prefix + "help link** - linking MMR"
+        }});
+      }
 
-          "**Note**: All number values are in minutes and must be integers"
+      if(args.length == 2){
+        let helpCommand = args[1];
+
+        if(helpCommand == "inhouse"){
+          message.reply({ embed : {
+            color : color,
+            title : "Command Help - " + helpCommand,
+            description :
+              prefix + "**inhouse lobbySize duration initalDelay title**\n\n" +
+              "**Example**: \n**" + prefix + "inhouse 10 120 5 r/Dota2 Inhouse!**\n\n"+
+              "The example above will open an inhouse queue and wait for 5 mins before the first matches start and "+
+              "players will be able to join the queue upto 120 mins after the first matches start\n"+
+              "----------\n"+
+              "**" + prefix + "inhouse clear**\n"+
+              "this will clear all the existing inhouse queues"+
+
+              "**Note**: All number values are in minutes and must be integers"
+            }
+          });
         }
-      });
+        else if(helpCommand == "link"){
+          message.reply({ embed : {
+            color: color,
+            title : "Command Help - " + helpCommand,
+            description :
+              "**" + prefix + "link steam32ID** - link your MMR using OpenDota\n"+
+              "**" + prefix + "link @user mmr** - (ADMIN ONLY)\n"
+          }});
+        }
+      }
     }
   }
 });
