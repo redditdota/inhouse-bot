@@ -6,7 +6,6 @@ Creates an inhouse queue and sets up private match for Dota 2
 * match players with no mmr linked together
 * option to ignore mmr with matchmaking
 * close the queue once the time has concluded
-* let an admin set a users mmr
 
 ## Setup
 You will need NodeJS and to install the following npm modules:

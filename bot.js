@@ -12,6 +12,7 @@ const botName = "inhouse bot"
 const color = parseInt("FFA200", 16); //converts hexadecimal to decimal
 const reactEmote = "👌";
 const msPerMin = 60000;
+const adminRoles = ["Moderators", "Discord Mods"];
 
 //true if there is an inhouse queue open
 var hasInhouseOpen = false;
@@ -178,7 +179,6 @@ function linkAccount(message, steam32ID){
           message.reply("No estimated MMR was found for this OpenDota account");
         }
         else{
-          console.log("adding account");
           addAccount(message, message.author.id, steam32ID, mmr);
         }
       }
@@ -196,7 +196,7 @@ function linkAccount(message, steam32ID){
 adds a users mmr to account table
 
 account table:
-userID: discord user id
+userID: discord user id (PRIMARY KEY)
 steam32ID
 mmr : match making rating
 submitTime : epoch time of the time the mmr was last submitted
@@ -204,12 +204,12 @@ submitTime : epoch time of the time the mmr was last submitted
 function addAccount(message, userID, steam32ID, mmr){
   sql.run("REPLACE INTO accounts (userID, steam32ID, mmr, submitTime) VALUES (?, ?, ?, ?)",
     [userID, steam32ID, mmr, (new Date).getTime()]).then(()=>{
-      message.reply("Success! Thank you for linking your MMR");
+      message.channel.send("Success! <@"+userID+">'s MMR has be linked");
   }).catch(()=>{
     sql.run("CREATE TABLE IF NOT EXISTS accounts (userID TEXT PRIMARY KEY, steam32ID TEXT, mmr INTEGER, submitTime INTEGER)").then(() => {
       sql.run("INSERT INTO accounts (userID, steam32ID, mmr, submitTime) VALUES (?, ?, ?, ?)",
         [userID, steam32ID, mmr, (new Date).getTime()]).then(() =>{
-          message.reply("Success! Thank you for linking your MMR");
+          message.channel.send("Success! <@"+userID+">'s MMR has be linked");
         });
     });
   });
@@ -222,6 +222,15 @@ function checkMMR(message, userID){
       message.reply("Your MMR: " + row.mmr);
     }
   }).catch(console.error);
+}
+
+function isAdmin(message){
+  for(let i in adminRoles){
+    if(message.member.roles.find("name", adminRoles[i])){
+      return true;
+    }
+  }
+  return false;
 }
 
 
@@ -242,6 +251,7 @@ client.on("ready", () => {
 client.on("message", message => {
   //command
   if(message.content.startsWith(prefix)){
+    console.log("COMMAND: " + message.content);
     let args = message.content.split(" ");
 
     //check if bot is alive
@@ -254,11 +264,29 @@ client.on("message", message => {
       inhouse(message, args);
     }
 
+    //link mmr with opendota or set by an admin
     else if(message.content.startsWith(prefix + "link")){
-      if(args[1] === undefined){
-        message.reply("no id given you must use the command like this:\n "+prefix + "link 12345677");
+      //++link @user mmr
+      if(args.length == 3){
+        if(!isAdmin(message)){
+          message.reply("Sorry you need to be an admin to use that command.\n"+
+            "If you need to set your mmr contact an admin");
+          return;
+        }
+        //validation
+        if(args[1].match(/\<@[0-9]+\>/g)){
+          let userID = args[1].substr(2,args[1].length-3);
+          let mmr = parseInt(args[2]);
+          if(isNaN(mmr)){
+            message.reply("Error: MMR must be an whole number");
+          }
+          else{
+            addAccount(message, userID, "", mmr);
+          }
+        }
       }
-      else{
+      //++link steam32ID
+      else if(args.length == 2){
         linkAccount(message, args[1]);
       }
     }
