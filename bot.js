@@ -260,6 +260,20 @@ client.on("message", message => {
       message.reply("pong");
     }
 
+    else if(args[0] == prefix + "about"){
+      message.channel.send({ embed :{
+        color : color,
+        title : "Inhouse Bot",
+        description : "Dota 2 Inhouse Bot",
+        fields : [
+          {
+            name : "Source",
+            value : "https://github.com/redditdota/inhouse-bot"
+          }
+        ]
+      }});
+    }
+
     //inhouse command
     else if(args[0] == prefix + "inhouse"){
       inhouse(message, args);
@@ -294,7 +308,10 @@ client.on("message", message => {
 
     else if(message.content.startsWith(prefix + "mmr")){
       if(args.length == 2){
-        if(args[1].match(/\<@[0-9]+\>/g)){
+        if(!isAdmin(message)){
+          message.reply("You need to be an admin to use this command");
+        }
+        else if(args[1].match(/\<@[0-9]+\>/g)){
           let userID = args[1].substr(2,args[1].length-3);
           checkMMR(message, userID);
         }
@@ -311,10 +328,11 @@ client.on("message", message => {
           color : color,
           title : "Inhouse Bot - Help",
           description :
-            "Use the commands below for more help:\n\n"+
-            "**" + prefix + "help inhouse** - creating an inhouse\n"+
-            "**" + prefix + "help link** - linking MMR\n"+
-            "**" + prefix + "help mmr** - check MMR"
+            "For more help on a command use: "+prefix + "help commandName\n\n"+
+            "**inhouse** - creating an inhouse\n"+
+            "**link** - linking MMR\n"+
+            "**mmr** - check MMR\n"+
+            "**about** - about this bot"
         }});
       }
 
@@ -332,8 +350,7 @@ client.on("message", message => {
               "players will be able to join the queue upto 120 mins after the first matches start\n"+
               "----------\n"+
               "**" + prefix + "inhouse clear**\n"+
-              "this will clear all the existing inhouse queues"+
-
+              "this will clear all the existing inhouse queues\n"+
               "**Note**: All number values are in minutes and must be integers"
             }
           });
@@ -353,7 +370,7 @@ client.on("message", message => {
             title : "Command Help - " + helpCommand,
             description :
             "**" + prefix + "mmr** - gets your mmr\n"+
-            "**" + prefix + "mmr @user** - gets the users mmr\n"
+            "**" + prefix + "mmr @user** - gets the users mmr (ADMIN ONLY)\n"
             }
           });
         }
