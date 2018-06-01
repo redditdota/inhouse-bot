@@ -125,10 +125,11 @@ function observeQueue(){
 }
 
 /*
-  1. pick out 10 users
-  2. decide the teams
-  3. send each user a DM with info on the teams and lobby to join
-  4. remove their reaction
+  - find the mmr of each player who is in the queue
+  - pick out 10 users for a new lobby
+  - balance the teams
+  - send each user a DM with info on the teams and lobby to join
+  - remove their reaction
 */
 function createMatch(reaction, usersInQueue, lobbySize, title){
   //not enough players
@@ -136,22 +137,72 @@ function createMatch(reaction, usersInQueue, lobbySize, title){
     return;
   }
 
-  //have the exact number of required users
-  if(usersInQueue.length == lobbySize){
-    console.log("creating match");
-    for(let i=0; i<usersInQueue.length; i++){
-      usersInQueue[i].send({embed :{
-        color : color,
-        title : "Match Starting - " + title,
-        description : "Join Team: Dire"
-      }});
-      reaction.remove(usersInQueue[i]);
-    }
-  }
-
   //find players with the closest skill level
-  else{
+  if(usersInQueue.length >= lobbySize){
+    //query all users mmr and add them to a json object
+    sql.all("SELECT * FROM accounts").then(rows=>{
+      //id of all the users and their mmr
+      let users = {
+        has_mmr : {}, //userid:mmr
+        no_mmr : [] //userid,userid,userid
+      };
+      let found = false;
+      //find the mmr for each player in the queue
+      for(let i=0; i<usersInQueue.length; i++){
+        found = false;
+        for(let r in rows){
+          if(!found && rows[r].userID == usersInQueue[i].id){
+            users.has_mmr[usersInQueue[i].id] = {
+              mmr : rows[r].mmr,
+              user :usersInQueue[i]
+            };
+        //    console.log("added user: [" + usersInQueue[i].id + "] = " + rows[r].mmr);
+            found = true;
+            break;
+          }
+        }
+        if(!found){
+        //  console.log("user mmr not found: " + usersInQueue[i].id);
+          users.no_mmr.push(usersInQueue[i].id);
+        }
+      }
 
+      //make sure we have 10 or more users with mmr linked
+      console.log("has_mmr length: " + Object.keys(users.has_mmr).length);
+      if(Object.keys(users.has_mmr).length >= lobbySize){
+        let lobby = [];
+
+        //populate a lobby
+        let playersNeeded = lobbySize;
+        for(let i in users.has_mmr){
+          if(playersNeeded <= 0){
+            break;
+          }
+          else{
+            lobby.push(users.has_mmr[i]);
+            playersNeeded -= 1;
+          }
+        }
+
+        //todo: balance teams
+
+
+        //send each user a message and remove their reaction
+        for(let i in lobby){
+          lobby[i].user.send({embed :{
+            color : color,
+            title : "Inhouse",
+            description : "Join Team: Dire"
+          }});
+          reaction.remove(lobby[i].user);
+        }
+      }
+      //for now ignore users with no mmr linked
+      else{
+        console.log("not enough players for a lobby with their mmr linked");
+      }
+
+    }).catch(console.error);
   }
 }
 
@@ -219,7 +270,7 @@ function addAccount(message, userID, steam32ID, mmr){
 function checkMMR(message, userID){
   sql.get("SELECT * FROM accounts WHERE userID='"+userID+"'").then(row=>{
     if(row){
-      message.reply("MMR: " + row.mmr);
+      message.author.send("MMR: " + row.mmr);
     }
   }).catch(console.error);
 }
@@ -276,7 +327,12 @@ client.on("message", message => {
 
     //inhouse command
     else if(args[0] == prefix + "inhouse"){
-      inhouse(message, args);
+      if(!isAdmin(message)){
+        message.reply("You need to be an admin to use this command");
+      }
+      else{
+        inhouse(message, args);
+      }
     }
 
     //link mmr with opendota or set by an admin
@@ -329,7 +385,7 @@ client.on("message", message => {
           title : "Inhouse Bot - Help",
           description :
             "For more help on a command use: "+prefix + "help commandName\n\n"+
-            "**inhouse** - creating an inhouse\n"+
+            "**inhouse** - creating an inhouse (ADMIN ONLY)\n"+
             "**link** - linking MMR\n"+
             "**mmr** - check MMR\n"+
             "**about** - about this bot"
@@ -342,7 +398,7 @@ client.on("message", message => {
         if(helpCommand == "inhouse"){
           message.reply({ embed : {
             color : color,
-            title : "Command Help - " + helpCommand,
+            title : "Command Help - " + helpCommand + " (ADMIN ONLY)",
             description :
               prefix + "**inhouse lobbySize duration initalDelay title**\n\n" +
               "**Example**: \n**" + prefix + "inhouse 10 120 5 r/Dota2 Inhouse!**\n\n"+
@@ -377,6 +433,15 @@ client.on("message", message => {
       }
     }
   }
+});
+
+client.on('error', error => {
+  console.log("CLIENT ERROR");
+  console.log(error);
+});
+
+client.on('disconnect', event => {
+  console.log("DISCONNECTED");
 });
 
 client.login(config.token);
