@@ -18,6 +18,23 @@ const adminRoles = ["Moderators", "Discord Mods"];
 var hasInhouseOpen = false;
 var observeInterval;
 
+Array.prototype.subarray=function(start,size){
+   if(!size){ size=0;}
+   let arr = [];
+   for(let i = start; i<this.length && i<start+size; i++){
+     arr.push(this[i]);
+   }
+   return arr;
+}
+
+Array.prototype.sum=function(){
+  let sum = 0;
+  for(let i=0; i<this.length; i++){
+   sum+=this[i];
+  }
+  return sum;
+}
+
 //
 function inhouse(message, args){
   if(args.length == 2){
@@ -311,6 +328,10 @@ client.on("message", message => {
       message.reply("pong");
     }
 
+    else if(args[0] == prefix + "test"){
+      test(message);
+    }
+
     else if(args[0] == prefix + "about"){
       message.channel.send({ embed :{
         color : color,
@@ -434,6 +455,97 @@ client.on("message", message => {
     }
   }
 });
+
+function test(message){
+  let sample = [
+    4000,
+    6500,
+    3800,
+    4100,
+    4500,
+    4800,
+    2000,
+    5000,
+    2100,
+    4350
+  ];
+
+  let playersPerTeam = 5;
+  let teamA = sample.subarray(0,playersPerTeam);
+  let teamB = sample.subarray(playersPerTeam, playersPerTeam);
+
+  //approximation solution
+  //swap a player on each team so we get a closer matching subset sum
+  //num of comparisions per repeat: (playersPerTeam^2)
+  let balanced = false;
+  let repeats = 5;
+  for(let y=0; y < repeats && !balanced; y++){
+    //fill a maxtrix with the difference a swap will make to the
+    //difference in the subset sum
+    let matrix = []; //a index, b index, diff change if swapped
+    for(let a=0; a<teamA.length; a++){
+      for(let b=0; b<teamB.length; b++){
+        matrix.push([
+          a, b, (teamB[b]-teamA[a]) + (teamB[b]-teamA[a])
+        ]);
+      }
+    }
+
+    let closestDiff = teamA.sum() - teamB.sum();
+    let closestIndex = -1;
+    for(let i=0; i<matrix.length; i++){
+      //subset sum difference if the swap is made
+      let nextDiff = matrix[i][2] + closestDiff;
+      //if the next difference is smaller
+      if(Math.abs(nextDiff) < Math.abs(closestDiff)){
+        closestDiff = nextDiff;
+        closestIndex = i;
+        if(nextDiff == 0){
+          balanced = true;
+          break;
+        }
+      }
+    }
+
+    //swap
+    if(closestIndex > -1){
+      let aIndex = matrix[closestIndex][0];
+      let bIndex = matrix[closestIndex][1];
+      let temp = teamA[aIndex];
+      teamA[aIndex] = teamB[bIndex];
+      teamB[bIndex] = temp;
+    }
+    //no more swaps can be made
+    else{
+      balanced = true;
+    }
+  }
+
+
+  let avgA = teamAvgMMR(teamA);
+  let avgB = teamAvgMMR(teamB);
+
+  message.channel.send(
+    "players: [" + sample.toString() +
+    "]\nAvg Diff: " + Math.abs(avgA-avgB) + "\nA: " + avgA + "\nB: " + avgB
+  );
+
+  let teams = {
+    a : teamA,
+    b : teamB
+  }
+
+  return teams;
+}
+
+
+function teamAvgMMR(team){
+  let sum = 0;
+  for(let i=0; i<team.length; i++){
+    sum += team[i];
+  }
+  return parseInt(sum/team.length);
+}
 
 client.on('error', error => {
   console.log("CLIENT ERROR");
