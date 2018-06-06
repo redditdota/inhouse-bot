@@ -27,14 +27,6 @@ Array.prototype.subarray=function(start,size){
    return arr;
 }
 
-Array.prototype.sum=function(){
-  let sum = 0;
-  for(let i=0; i<this.length; i++){
-   sum+=this[i];
-  }
-  return sum;
-}
-
 //
 function inhouse(message, args){
   if(args.length == 2){
@@ -201,17 +193,64 @@ function createMatch(reaction, usersInQueue, lobbySize, title){
           }
         }
 
-        //todo: balance teams
+        let playersPerTeam = 5;
+        let lobbyTeams = balanceLobby(lobby, playersPerTeam);
+        console.log(lobbyTeams);
+
+        let teamNames = {
+          a : "Radiant",
+          b : "Dire"
+        }
+
+        let teamTable = "";
+        let teamTableAdmin = "";
+
+        //create string for teams
+        for(let i in lobbyTeams){
+          teamTable += "**" + teamNames[i] + "**\n----------------\n";
+          teamTableAdmin += teamNames[i] + "\n----------------\n";
+          for(let j in lobbyTeams[i]){
+            if(lobbyTeams[i][j].user !== undefined){
+              teamTable += lobbyTeams[i][j].user.username + "\n";
+              console.log(lobbyTeams[i][j].mmr);
+              teamTableAdmin += lobbyTeams[i][j].mmr + " : " + lobbyTeams[i][j].user.username + "\n";
+            }
+          }
+          teamTable += "\n\n";
+          teamTableAdmin += "\n";
+        }
+
+        //log admin info to console
+        //todo: send this to admins
+        console.log("MATCH CREATED:\n" + teamTableAdmin);
+        let teamAVGs = {};
+        for(let i in lobbyTeams){
+          teamAVGs[i] = teamAvgMMR(lobbyTeams[i]);
+          if(isNaN(parseInt(teamAVGs[i]))){
+            teamAVGs[i] = 0;
+          }
+          console.log(teamNames[i] + " AVG MMR: " + teamAVGs[i]);
+        }
+        if(teamAVGs["a"] !== undefined && teamAVGs["b"] !== undefined){
+          console.log("Match AVG MMR:" + ((teamAVGs["a"] + teamAVGs["b"])/2));
+          console.log("Diff in AVG MMR: " + Math.abs(teamAVGs["a"] - teamAVGs["b"]));
+        }
 
 
         //send each user a message and remove their reaction
-        for(let i in lobby){
-          lobby[i].user.send({embed :{
-            color : color,
-            title : "Inhouse",
-            description : "Join Team: Dire"
-          }});
-          reaction.remove(lobby[i].user);
+        let teamCount = 0;
+        for(let i in lobbyTeams){
+          for(let j in lobbyTeams[i]){
+            if(lobbyTeams[i][j].user){
+              lobbyTeams[i][j].user.send({embed :{
+                color : color,
+                title : "Inhouse",
+                description : "Join Team: **" + teamNames[i] + "**"+
+                  "\n\n"+ teamTable
+              }});
+              reaction.remove(lobbyTeams[i][j].user);
+            }
+          }
         }
       }
       //for now ignore users with no mmr linked
@@ -456,23 +495,9 @@ client.on("message", message => {
   }
 });
 
-function test(message){
-  let sample = [
-    4000,
-    6500,
-    3800,
-    4100,
-    4500,
-    4800,
-    2000,
-    5000,
-    2100,
-    4350
-  ];
-
-  let playersPerTeam = 5;
-  let teamA = sample.subarray(0,playersPerTeam);
-  let teamB = sample.subarray(playersPerTeam, playersPerTeam);
+function balanceLobby(players, playersPerTeam){
+  let teamA = players.subarray(0,playersPerTeam);
+  let teamB = players.subarray(playersPerTeam, playersPerTeam);
 
   //approximation solution
   //swap a player on each team so we get a closer matching subset sum
@@ -486,12 +511,12 @@ function test(message){
     for(let a=0; a<teamA.length; a++){
       for(let b=0; b<teamB.length; b++){
         matrix.push([
-          a, b, (teamB[b]-teamA[a]) + (teamB[b]-teamA[a])
+          a, b, (teamB[b].mmr - teamA[a].mmr) + (teamB[b].mmr - teamA[a].mmr)
         ]);
       }
     }
 
-    let closestDiff = teamA.sum() - teamB.sum();
+    let closestDiff = teamSumMMR(teamA) - teamSumMMR(teamB);
     let closestIndex = -1;
     for(let i=0; i<matrix.length; i++){
       //subset sum difference if the swap is made
@@ -525,10 +550,12 @@ function test(message){
   let avgA = teamAvgMMR(teamA);
   let avgB = teamAvgMMR(teamB);
 
+/*
   message.channel.send(
     "players: [" + sample.toString() +
     "]\nAvg Diff: " + Math.abs(avgA-avgB) + "\nA: " + avgA + "\nB: " + avgB
   );
+  */
 
   let teams = {
     a : teamA,
@@ -538,13 +565,25 @@ function test(message){
   return teams;
 }
 
-
-function teamAvgMMR(team){
+function teamSumMMR(team){
   let sum = 0;
   for(let i=0; i<team.length; i++){
     sum += team[i];
   }
+  return sum;
+}
+
+
+function teamAvgMMR(team){
+  let sum = 0;
+  for(let i=0; i<team.length; i++){
+    sum += team[i].mmr;
+  }
   return parseInt(sum/team.length);
+}
+
+function test(message){
+
 }
 
 client.on('error', error => {
