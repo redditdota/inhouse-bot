@@ -372,6 +372,25 @@ function isAdmin(message){
   return false;
 }
 
+//add or remove the moderator role on a user
+function manageModerators(message, args){
+  //validate command, must be admin and have usersID as the 2nd arg
+  if(isAdmin(message)){
+    if(args[2] !== undefined && args[2].match(/\<@[0-9]+\>/)){
+      let role = message.guild.roles.find("name", moderatorRoleName);
+      let member = message.mentions.members.first();
+      if(args[1] == "add"){
+        member.addRole(role).catch(console.error);
+        message.reply("you added " + args[2] + " as a new inhouse moderator");
+      }
+      else if(args[1] == "remove"){
+        member.removeRole(role).catch(console.error);
+        message.reply("you removed " + args[1] + " as a inhouse moderator");
+      }
+    }
+  }
+}
+
 //when the bot enters the ready state
 client.on("ready", () => {
   console.log(botName + " ready!");
@@ -400,6 +419,15 @@ client.on("message", message => {
 
     else if(args[0] == prefix + "test"){
       test(message);
+    }
+
+    else if(args[0] == prefix + "mod"){
+      if(args.length != 3){
+        return;
+      }
+      if(args[1] == "add" || args[1] == "remove"){
+        manageModerators(message, args);
+      }
     }
 
     else if(args[0] == prefix + "about"){
@@ -476,10 +504,13 @@ client.on("message", message => {
           title : "Inhouse Bot - Help",
           description :
             "For more help on a command use: "+prefix + "help commandName\n\n"+
-            "**inhouse** - creating an inhouse (ADMIN ONLY)\n"+
+
             "**link** - linking MMR\n"+
             "**mmr** - check MMR\n"+
-            "**about** - about this bot"
+            "**about** - about this bot\n"+
+            "\nAdmin Only\n--------------------\n"+
+            "**inhouse** - creating an inhouse\n"+
+            "**mod** - add/remove a user as an inhouse moderator\n"
         }});
       }
 
@@ -518,6 +549,17 @@ client.on("message", message => {
             description :
             "**" + prefix + "mmr** - gets your mmr\n"+
             "**" + prefix + "mmr @user** - gets the users mmr (ADMIN ONLY)\n"
+            }
+          });
+        }
+        else if(helpCommand == "mod"){
+          message.reply({ embed : {
+            color : color,
+            title : "Command Help - " + helpCommand,
+            description :
+            "You can add or remove a user as an inhouse moderator. If you want to add/remove yourself then mention yourself as @user\n\n"+
+            "**" + prefix + "mod add @user** - add user as a moderator\n"+
+            "**" + prefix + "mod remove @user** - remove user as a moderator\n"
             }
           });
         }
