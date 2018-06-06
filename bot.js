@@ -14,6 +14,9 @@ const reactEmote = "👌";
 const msPerMin = 60000;
 const adminRoles = ["Moderators", "Discord Mods"];
 
+//if a user has this role they will get a notification when a match start
+const moderatorRoleName = "inhouse-moderator";
+
 //true if there is an inhouse queue open
 var hasInhouseOpen = false;
 var observeInterval;
@@ -231,21 +234,38 @@ function createMatch(reaction, usersInQueue, lobbySize, title){
           teamTableAdmin += "\n";
         }
 
-        //log admin info to console
-        //todo: send this to admins
-        console.log("MATCH CREATED:\n" + teamTableAdmin);
+        //notify admins of the new match
+        let role =  reaction.message.guild.roles.find("name",  moderatorRoleName);
+        let moderators = reaction.message.guild.roles.get(role.id).members;
+
         let teamAVGs = {};
         for(let i in lobbyTeams){
           teamAVGs[i] = teamAvgMMR(lobbyTeams[i]);
           if(isNaN(parseInt(teamAVGs[i]))){
             teamAVGs[i] = 0;
           }
-          console.log(teamNames[i] + " AVG MMR: " + teamAVGs[i]);
         }
-        if(teamAVGs["a"] !== undefined && teamAVGs["b"] !== undefined){
-          console.log("Match AVG MMR:" + ((teamAVGs["a"] + teamAVGs["b"])/2));
-          console.log("Diff in AVG MMR: " + Math.abs(teamAVGs["a"] - teamAVGs["b"]));
-        }
+        let avgMatchMMR = (teamAVGs["a"] + teamAVGs["b"])/2;
+        let diffInMMR = Math.abs(teamAVGs["a"] - teamAVGs["b"]);
+
+        moderators.forEach(function(val, key, map){
+          val.send({ embed: {
+            color : color,
+            title : "Match Started",
+            description:
+                "**AVG Match MMR**: " + avgMatchMMR + "\n\n" +
+                teamNames["a"] + " AVG MMR: " + teamAVGs["a"] + "\n" +
+                teamNames["b"] + " AVG MMR: " + teamAVGs["b"] + "\n" +
+                "Diff AVG MMR: " + diffInMMR + "\n\n" +
+                teamTableAdmin,
+              timestamp : new Date(),
+              footer : {
+                text : "Created at"
+              }
+          }});
+        });
+
+        console.log("MATCH CREATED:\n" + teamTableAdmin);
 
 
         //send each user a message and remove their reaction
