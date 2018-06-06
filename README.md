@@ -2,12 +2,23 @@
 Creates an inhouse queue and sets up private match for Dota 2
 
 ## Road Map
-* balance players in the lobby
-* prioritize players with larger mmr and lower mmr to play together
-* match players with no mmr linked together
-* remind people to link their mmr, otherwise they wont be able to play
+* sort players by mmr in their team
+  * set captain as highest MMR player
+* send admins a DM when a match starts
+  * with extra info about MMR
+* categorize players if the queue is bigger than 2 lobbies
+  * prioritize players with larger mmr and lower mmr to play together
+* remove players from the queue if they have no mmr and tell them how to link their mmr
 * close the queue once the time has concluded
+
+## Future Iterations
 * take into account the amount of time someone has been queuing
+* ignore mmr
+* different lobby sizes for custom games
+* give roles to users in a match
+  * admin can message all players in a match and tell them to remake
+* invite players to match using steamkit
+* get results of match
 
 ## Setup
 You will need NodeJS and to install the following npm modules:
