@@ -14,8 +14,10 @@ const reactEmote = "👌";
 const msPerMin = 60000;
 const adminRoles = ["Moderators", "Discord Mods"];
 
-//if a user has this role they will get a notification when a match start
+//if a user has these roles they will get a notification when a match start
+//moderators will get more info
 const moderatorRoleName = "inhouse-moderator";
+const casterRoleName = "inhouse-caster";
 
 const inhouseID = "rdota2";
 
@@ -219,8 +221,10 @@ function createMatch(reaction, usersInQueue, lobbySize, title){
         let teamTableAdmin = "";
         let hasCaptain = false;
 
+        //find the match index
         sql.run("CREATE TABLE IF NOT EXISTS matches (inhouseID TEXT, matchNum TEXT, time INTEGER, avgMMR INTEGER)").then(() => {
           sql.all("SELECT * FROM matches WHERE inhouseID='"+inhouseID+"'").then(rows =>{
+            //match index is autoincrement
             let matchIndex = 1;
             if(rows){
               matchIndex = rows.length + 1;
@@ -254,8 +258,8 @@ function createMatch(reaction, usersInQueue, lobbySize, title){
             }
 
             //notify admins of the new match
-            let role =  reaction.message.guild.roles.find("name",  moderatorRoleName);
-            let moderators = reaction.message.guild.roles.get(role.id).members;
+            let adminRole =  reaction.message.guild.roles.find("name",  moderatorRoleName);
+            let moderators = reaction.message.guild.roles.get(adminRole.id).members;
 
             let teamAVGs = {};
             for(let i in lobbyTeams){
@@ -267,8 +271,8 @@ function createMatch(reaction, usersInQueue, lobbySize, title){
             let avgMatchMMR = (teamAVGs["a"] + teamAVGs["b"])/2;
             let diffInMMR = Math.abs(teamAVGs["a"] - teamAVGs["b"]);
 
-            moderators.forEach(function(val, key, map){
-              val.send({ embed: {
+            moderators.forEach(function(moderator, key, map){
+              moderator.send({ embed: {
                 color : color,
                 title : "Match Started",
                 description:
@@ -285,7 +289,7 @@ function createMatch(reaction, usersInQueue, lobbySize, title){
                   }
               }});
 
-              val.send({ embed: {
+              moderator.send({ embed: {
                 color : color,
                 title : "Teams",
                 description:
@@ -295,9 +299,26 @@ function createMatch(reaction, usersInQueue, lobbySize, title){
                     text : "Created at"
                   }
               }});
-
-
             });
+
+            //notify all casters on the match
+            let casterRole =  reaction.message.guild.roles.find("name",  casterRoleName);
+            let casters = reaction.message.guild.roles.get(casterRole.id).members;
+            casters.forEach(function(caster, key, map){
+              caster.send({ embed : {
+                color : color,
+                title : "Caster Notification",
+                description :
+                  "Match Started!\nAVG MMR: " + avgMatchMMR + "\n\n" +
+                  "**Lobby**\nName: " + lobbyName + "\nPassword: " + lobbyPassword + "\n\n" +
+                  "**Note**: if the lobby doesn't exist yet please wait until the admin creates it",
+                timestamp : new Date(),
+                footer : {
+                  text : "Created at"
+                }
+              }});
+            });
+
             //send each user a message and remove their reaction
             let teamCount = 0;
             for(let i in lobbyTeams){
@@ -309,6 +330,7 @@ function createMatch(reaction, usersInQueue, lobbySize, title){
                     description : "Team: **" + teamNames[i] + "**\n"+
                       "\n**Join Lobby**:\n" +
                       "Name: " + lobbyName + "\nPassword: " + lobbyPassword +
+                      "\n\n**Note:** if the lobby doesn't exist yet, please wait for the admin to create it" +
                       "\n\n"+ teamTable
                   }});
                   reaction.remove(lobbyTeams[i][j].user);
@@ -317,9 +339,6 @@ function createMatch(reaction, usersInQueue, lobbySize, title){
             }
 
             //add match to database
-
-
-
             sql.run(
               "INSERT INTO matches (inhouseID, matchNum, time, avgMMR) VALUES (?, ?, ?, ?)",
               [inhouseID, matchIndex, (new Date).getTime(), avgMatchMMR]
@@ -436,6 +455,55 @@ function manageModerators(message, args){
   }
 }
 
+//add or remove caster role
+//casters will get notified when a match starts
+function manageCasters(message, args){
+  let role = message.guild.roles.find("name", casterRoleName);
+
+  if(args[1] === undefined){
+    return;
+  }
+  //remove all casters
+  if(args[1] == "clear"){
+    let casters = message.guild.roles.get(role.id).members;
+    casters.forEach(function(caster, key, map){
+      caster.removeRole(role).catch(console.error);
+    });
+    message.reply("you removed all the casters");
+  }
+  else if(args[1] == "list"){
+    let casters = message.guild.roles.get(role.id).members;
+    let casterStr = "";
+
+    let count = 0;
+    casters.forEach(function(caster, key, map){
+      count += 1;
+      casterStr += count + ": " + caster.user.username + "\n";
+    });
+    message.channel.send({ embed : {
+      color : color,
+      title : "Casters ("+count+")",
+      description : casterStr
+    }});
+  }
+  else if(args[2] !== undefined){
+
+    let member = message.mentions.members.first();
+    if(member === undefined || member == null){
+      return;
+    }
+
+    if(args[1] == "add"){
+      member.addRole(role).catch(console.error);
+      message.reply("you added " + args[2] + " as a caster");
+    }
+    if(args[1] == "remove"){
+      member.removeRole(role).catch(console.error);
+      message.reply("you removed " + args[2] + " as a caster");
+    }
+  }
+}
+
 //when the bot enters the ready state
 client.on("ready", () => {
   console.log(botName + " ready!");
@@ -446,8 +514,6 @@ client.on("ready", () => {
       observeQueue();
     }
   }).catch(console.error);
-
-
 });
 
 //when a message is recieved
@@ -496,6 +562,16 @@ client.on("message", message => {
       }
       else{
         inhouse(message, args);
+      }
+    }
+
+    else if(args[0] == prefix + "caster"){
+      let admin = isAdmin(message);
+      if(!admin){
+        message.reply("You need to be an admin to use this command");
+      }
+      else if(admin && args.length > 1){
+        manageCasters(message, args);
       }
     }
 
@@ -555,7 +631,8 @@ client.on("message", message => {
             "**about** - about this bot\n"+
             "\nAdmin Only\n--------------------\n"+
             "**inhouse** - creating an inhouse\n"+
-            "**mod** - add/remove a user as an inhouse moderator\n"
+            "**mod** - add/remove a user as an inhouse moderator\n"+
+            "**caster** - mange the caster roles"
         }});
       }
 
@@ -597,6 +674,20 @@ client.on("message", message => {
             }
           });
         }
+        else if(helpCommand == "caster"){
+          message.reply({ embed : {
+            color : color,
+            title : "Command Help - " + helpCommand,
+            description :
+            "Manage the caster roles. Casters will get notified when a match starts. If you want to add/remove yourself then mention yourself as @user\n\n"+
+            "**" + prefix + "caster add @user** - add user as a caster\n"+
+            "**" + prefix + "caster remove @user** - remove user as a caster\n"+
+            "**" + prefix + "caster clear** - remove the caster role from all users\n"+
+            "**" + prefix + "caster list** - list all the casters"
+            }
+          });
+        }
+
         else if(helpCommand == "mod"){
           message.reply({ embed : {
             color : color,
@@ -667,13 +758,6 @@ function balanceLobby(players, playersPerTeam){
 
   let avgA = teamAvgMMR(teamA);
   let avgB = teamAvgMMR(teamB);
-
-/*
-  message.channel.send(
-    "players: [" + sample.toString() +
-    "]\nAvg Diff: " + Math.abs(avgA-avgB) + "\nA: " + avgA + "\nB: " + avgB
-  );
-  */
 
   let teams = {
     a : teamA,
