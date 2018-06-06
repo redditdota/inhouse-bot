@@ -197,6 +197,8 @@ function createMatch(reaction, usersInQueue, lobbySize, title){
         let lobbyTeams = balanceLobby(lobby, playersPerTeam);
         console.log(lobbyTeams);
 
+
+
         let teamNames = {
           a : "Radiant",
           b : "Dire"
@@ -204,16 +206,25 @@ function createMatch(reaction, usersInQueue, lobbySize, title){
 
         let teamTable = "";
         let teamTableAdmin = "";
+        let hasCaptain = false;
 
         //create string for teams
         for(let i in lobbyTeams){
+          lobbyTeams[i] = getSortedTeamByMMR(lobbyTeams[i]); //sort each team by mmr
           teamTable += "**" + teamNames[i] + "**\n----------------\n";
           teamTableAdmin += teamNames[i] + "\n----------------\n";
+          hasCaptain = false;
+
           for(let j in lobbyTeams[i]){
             if(lobbyTeams[i][j].user !== undefined){
-              teamTable += lobbyTeams[i][j].user.username + "\n";
+              let captainStr = "";
+              if(!hasCaptain){
+                captainStr = " [Captain]";
+                hasCaptain = true;
+              }
+              teamTable += lobbyTeams[i][j].user.username + captainStr + "\n";
               console.log(lobbyTeams[i][j].mmr);
-              teamTableAdmin += lobbyTeams[i][j].mmr + " : " + lobbyTeams[i][j].user.username + "\n";
+              teamTableAdmin += lobbyTeams[i][j].mmr + " : " + lobbyTeams[i][j].user.username + captainStr + "\n";
             }
           }
           teamTable += "\n\n";
@@ -582,8 +593,31 @@ function teamAvgMMR(team){
   return parseInt(sum/team.length);
 }
 
-function test(message){
+function getSortedTeamByMMR(team){
+  let swapped;
+    do {
+      swapped = false;
+      for (let i=0; i < team.length-1; i++) {
+          if (team[i].mmr < team[i+1].mmr) {
+              let temp = team[i];
+              team[i] = team[i+1];
+              team[i+1] = temp;
+              swapped = true;
+          }
+      }
+  } while (swapped);
 
+  return team;
+}
+
+function test(message){
+  let sample = [
+    {mmr: 2500},
+    {mmr: 2000},
+    {mmr: 3000},
+    {mmr: 1000}
+  ];
+  console.log(getSortedTeamByMMR(sample));
 }
 
 client.on('error', error => {

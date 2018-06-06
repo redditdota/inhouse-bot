@@ -2,8 +2,6 @@
 Creates an inhouse queue and sets up private match for Dota 2
 
 ## Road Map
-* sort players by mmr in their team
-  * set captain as highest MMR player
 * send admins a DM when a match starts
   * with extra info about MMR
 * categorize players if the queue is bigger than 2 lobbies
