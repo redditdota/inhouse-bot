@@ -629,4 +629,27 @@ client.on('disconnect', event => {
   console.log("DISCONNECTED");
 });
 
+client.on('messageReactionAdd', (reaction, user) => {
+  //check if message is a inhouse message
+  if(user.bot) return;
+  let msgID = reaction.message.id;
+  let channelID = reaction.message.channel.id;
+  sql.get("SELECT * FROM inhouse WHERE msgID='"+msgID+"' AND channelID='"+channelID+"'").then(row => {
+    if(row){
+      //check if the user has linked their mmr
+      sql.get("SELECT * FROM accounts WHERE userID='"+user.id+"'").then(row => {
+        //if not mmr is linked, remove the reaction and notify the user
+        if(!row){
+          reaction.remove(user);
+          user.send("<@" + user.id + "> You cannot participate until you link your mmr. "+
+            "You can link your mmr using "+ prefix + "link\n"+
+            "if you need help use "+prefix + "help link");
+        }
+      }).catch(console.error);
+    }
+  }).catch(console.error);
+});
+
+
+
 client.login(config.token);
