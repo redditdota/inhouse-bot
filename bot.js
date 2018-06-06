@@ -504,6 +504,13 @@ function manageCasters(message, args){
   }
 }
 
+//remove the caster role from the user of the msg
+function removeCasterSelf(message){
+  let role = message.guild.roles.find("name", casterRoleName);
+  message.member.removeRole(role).catch(console.error);
+  message.reply("you are now removed as a caster");
+}
+
 //when the bot enters the ready state
 client.on("ready", () => {
   console.log(botName + " ready!");
@@ -539,6 +546,10 @@ client.on("message", message => {
       if(args[1] == "add" || args[1] == "remove"){
         manageModerators(message, args);
       }
+    }
+
+    else if(args[0] == prefix + "unsub"){
+      removeCasterSelf(message);
     }
 
     else if(args[0] == prefix + "about"){
@@ -628,6 +639,8 @@ client.on("message", message => {
 
             "**link** - linking MMR\n"+
             "**mmr** - check MMR\n"+
+            "**info** - extra help and info about the inhouse\n"+
+            "**unsub** - removes yourself as a caster\n" +
             "**about** - about this bot\n"+
             "\nAdmin Only\n--------------------\n"+
             "**inhouse** - creating an inhouse\n"+
