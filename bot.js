@@ -17,6 +17,8 @@ const adminRoles = ["Moderators", "Discord Mods"];
 //if a user has this role they will get a notification when a match start
 const moderatorRoleName = "inhouse-moderator";
 
+const inhouseID = "rdota2";
+
 //true if there is an inhouse queue open
 var hasInhouseOpen = false;
 var observeInterval;
@@ -136,6 +138,12 @@ function observeQueue(){
   }, checkTime);
 }
 
+
+//random integer between min and max (both inclusive)
+function randomInt(min, max) {
+    return Math.floor(Math.random() * (max - min + 1)) + min;
+}
+
 /*
   - find the mmr of each player who is in the queue
   - pick out 10 users for a new lobby
@@ -211,78 +219,115 @@ function createMatch(reaction, usersInQueue, lobbySize, title){
         let teamTableAdmin = "";
         let hasCaptain = false;
 
-        //create string for teams
-        for(let i in lobbyTeams){
-          lobbyTeams[i] = getSortedTeamByMMR(lobbyTeams[i]); //sort each team by mmr
-          teamTable += "**" + teamNames[i] + "**\n----------------\n";
-          teamTableAdmin += teamNames[i] + "\n----------------\n";
-          hasCaptain = false;
-
-          for(let j in lobbyTeams[i]){
-            if(lobbyTeams[i][j].user !== undefined){
-              let captainStr = "";
-              if(!hasCaptain){
-                captainStr = " [Captain]";
-                hasCaptain = true;
-              }
-              teamTable += lobbyTeams[i][j].user.username + captainStr + "\n";
-              console.log(lobbyTeams[i][j].mmr);
-              teamTableAdmin += lobbyTeams[i][j].mmr + " : " + lobbyTeams[i][j].user.username + captainStr + "\n";
+        sql.run("CREATE TABLE IF NOT EXISTS matches (inhouseID TEXT, matchNum TEXT, time INTEGER, avgMMR INTEGER)").then(() => {
+          sql.all("SELECT * FROM matches WHERE inhouseID='"+inhouseID+"'").then(rows =>{
+            let matchIndex = 1;
+            if(rows){
+              matchIndex = rows.length + 1;
             }
-          }
-          teamTable += "\n\n";
-          teamTableAdmin += "\n";
-        }
 
-        //notify admins of the new match
-        let role =  reaction.message.guild.roles.find("name",  moderatorRoleName);
-        let moderators = reaction.message.guild.roles.get(role.id).members;
+            let lobbyName = inhouseID + "-" + matchIndex;
+            let lobbyPassword = "d" + randomInt(10,99);
 
-        let teamAVGs = {};
-        for(let i in lobbyTeams){
-          teamAVGs[i] = teamAvgMMR(lobbyTeams[i]);
-          if(isNaN(parseInt(teamAVGs[i]))){
-            teamAVGs[i] = 0;
-          }
-        }
-        let avgMatchMMR = (teamAVGs["a"] + teamAVGs["b"])/2;
-        let diffInMMR = Math.abs(teamAVGs["a"] - teamAVGs["b"]);
 
-        moderators.forEach(function(val, key, map){
-          val.send({ embed: {
-            color : color,
-            title : "Match Started",
-            description:
-                "**AVG Match MMR**: " + avgMatchMMR + "\n\n" +
-                teamNames["a"] + " AVG MMR: " + teamAVGs["a"] + "\n" +
-                teamNames["b"] + " AVG MMR: " + teamAVGs["b"] + "\n" +
-                "Diff AVG MMR: " + diffInMMR + "\n\n" +
-                teamTableAdmin,
-              timestamp : new Date(),
-              footer : {
-                text : "Created at"
+            //create string for teams
+            for(let i in lobbyTeams){
+              lobbyTeams[i] = getSortedTeamByMMR(lobbyTeams[i]); //sort each team by mmr
+              teamTable += "**" + teamNames[i] + "**\n----------------\n";
+              teamTableAdmin += teamNames[i] + "\n----------------\n";
+              hasCaptain = false;
+
+              for(let j in lobbyTeams[i]){
+                if(lobbyTeams[i][j].user !== undefined){
+                  let captainStr = "";
+                  if(!hasCaptain){
+                    captainStr = " [Captain]";
+                    hasCaptain = true;
+                  }
+                  teamTable += lobbyTeams[i][j].user.username + captainStr + "\n";
+                  console.log(lobbyTeams[i][j].mmr);
+                  teamTableAdmin += lobbyTeams[i][j].mmr + " : " + lobbyTeams[i][j].user.username + captainStr + "\n";
+                }
               }
-          }});
-        });
+              teamTable += "\n\n";
+              teamTableAdmin += "\n";
+            }
+
+            //notify admins of the new match
+            let role =  reaction.message.guild.roles.find("name",  moderatorRoleName);
+            let moderators = reaction.message.guild.roles.get(role.id).members;
+
+            let teamAVGs = {};
+            for(let i in lobbyTeams){
+              teamAVGs[i] = teamAvgMMR(lobbyTeams[i]);
+              if(isNaN(parseInt(teamAVGs[i]))){
+                teamAVGs[i] = 0;
+              }
+            }
+            let avgMatchMMR = (teamAVGs["a"] + teamAVGs["b"])/2;
+            let diffInMMR = Math.abs(teamAVGs["a"] - teamAVGs["b"]);
+
+            moderators.forEach(function(val, key, map){
+              val.send({ embed: {
+                color : color,
+                title : "Match Started",
+                description:
+                    "**Create Lobby**:\n" +
+                    "Name: " + lobbyName + "\nPassword: " + lobbyPassword + "\n\n" +
+                    "**AVG Match MMR**: " + avgMatchMMR + "\n\n" +
+                    teamNames["a"] + " AVG MMR: " + teamAVGs["a"] + "\n" +
+                    teamNames["b"] + " AVG MMR: " + teamAVGs["b"] + "\n" +
+                    "Diff AVG MMR: " + diffInMMR + "\n" +
+                    "Match Index : " + matchIndex,
+                  timestamp : new Date(),
+                  footer : {
+                    text : "Created at"
+                  }
+              }});
+
+              val.send({ embed: {
+                color : color,
+                title : "Teams",
+                description:
+                    teamTableAdmin,
+                  timestamp : new Date(),
+                  footer : {
+                    text : "Created at"
+                  }
+              }});
+
+
+            });
+            //send each user a message and remove their reaction
+            let teamCount = 0;
+            for(let i in lobbyTeams){
+              for(let j in lobbyTeams[i]){
+                if(lobbyTeams[i][j].user){
+                  lobbyTeams[i][j].user.send({embed :{
+                    color : color,
+                    title : "Inhouse",
+                    description : "Team: **" + teamNames[i] + "**\n"+
+                      "\n**Join Lobby**:\n" +
+                      "Name: " + lobbyName + "\nPassword: " + lobbyPassword +
+                      "\n\n"+ teamTable
+                  }});
+                  reaction.remove(lobbyTeams[i][j].user);
+                }
+              }
+            }
+
+            //add match to database
+
+
+
+            sql.run(
+              "INSERT INTO matches (inhouseID, matchNum, time, avgMMR) VALUES (?, ?, ?, ?)",
+              [inhouseID, matchIndex, (new Date).getTime(), avgMatchMMR]
+            ).catch(console.error);
+          }).catch(console.error);
+        }).catch(console.error);
 
         console.log("MATCH CREATED:\n" + teamTableAdmin);
-
-
-        //send each user a message and remove their reaction
-        let teamCount = 0;
-        for(let i in lobbyTeams){
-          for(let j in lobbyTeams[i]){
-            if(lobbyTeams[i][j].user){
-              lobbyTeams[i][j].user.send({embed :{
-                color : color,
-                title : "Inhouse",
-                description : "Join Team: **" + teamNames[i] + "**"+
-                  "\n\n"+ teamTable
-              }});
-              reaction.remove(lobbyTeams[i][j].user);
-            }
-          }
-        }
       }
       //for now ignore users with no mmr linked
       else{
