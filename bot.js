@@ -279,6 +279,7 @@ function createMatch(reaction, usersInQueue, lobbySize, title){
             let avgMatchMMR = (teamAVGs["a"] + teamAVGs["b"])/2;
             let diffInMMR = Math.abs(teamAVGs["a"] - teamAVGs["b"]);
 
+            //MODERATOR MSG
             //send messages to mod channel
             let modChannel = client.channels.get(moderatorChannelID);
 
@@ -312,6 +313,7 @@ function createMatch(reaction, usersInQueue, lobbySize, title){
 
             modChannel.send("-------------");
 
+            //CASTER MSG
             //notify all casters on the match
             let casterRole =  reaction.message.guild.roles.find("name",  casterRoleName);
             let casters = reaction.message.guild.roles.get(casterRole.id).members;
@@ -330,7 +332,8 @@ function createMatch(reaction, usersInQueue, lobbySize, title){
               }});
             });
 
-            //send each user a message and remove their reaction
+            //send each player a message and remove their reaction
+            //PLAYER MSG
             let teamCount = 0;
             for(let i in lobbyTeams){
               for(let j in lobbyTeams[i]){
@@ -342,7 +345,8 @@ function createMatch(reaction, usersInQueue, lobbySize, title){
                       "\n**Join Lobby**:\n" +
                       "Name: " + lobbyName + "\nPassword: " + lobbyPassword +
                       "\n\n**Note:** if the lobby doesn't exist yet, please wait for the admin to create it" +
-                      "\n\n"+ teamTable
+                      "\n\n"+ teamTable + "\n\n"+
+                      "Good luck have fun 😁"
                   }});
                   reaction.remove(lobbyTeams[i][j].user);
                 }
@@ -534,8 +538,21 @@ client.on("ready", () => {
   }).catch(console.error);
 });
 
+function setup(){
+  client.user.setUsername("🏆 Inhouse 🏆");
+  client.user.setPresence({ game: {
+      name: prefix + "help",
+      type : "LISTENING"
+    },
+    status: "online",
+    afk: false
+  });
+}
+
 //when a message is recieved
 client.on("message", message => {
+  setup();
+
   //command
   if(message.content.startsWith(prefix)){
     console.log("COMMAND: " + message.content);
@@ -639,6 +656,48 @@ client.on("message", message => {
       }
     }
 
+    else if(message.content.startsWith(prefix + "lobby") && isAdmin(message)){
+      message.reply({ embed :{
+        color : color,
+        title : "Lobby Settings",
+        description :
+          "```Server:           EU = Luxembuorg, NA = US East\n" +
+          "Game Mode:           Captains Mode\n" +
+          "Visibility:          Public\n" +
+          "Cheats:              Disabled\n" +
+          "Selection Priority:  Coin Flip\n" +
+          "Penalty:             None\n" +
+          "Spectators:          Enabled\n" +
+          "DotaTV Delay:        2 mins\n" +
+          "Pausing:             limited\n" +
+          "Series:              False\n" +
+          "Bots:                Disabled```"
+      }});
+    }
+
+    else if(args[0] == prefix + "faq"){
+      message.reply({ embed : {
+        color : color,
+        title : "Frequently Asked Questions",
+        description :
+          "**How do I link my MMR?**\n" +
+          "use the " + prefix + "link command if you already have an OpenDota account. "+
+          "However if you don't have an account, ping an inhouse moderator with a screenshot of your mmr and/or medal. They will link your mmr manually\n\n"+
+          "**How to Join a Dota lobby?**\n" +
+          "Click 'Play Dota' > View Lobbies > Search for the lobby > Join Lobby > Enter password\n\n"+
+          "**I can't join my match**\n" +
+          "Please wait for an inhouse moderator to create the server. However the lobby might have had a remake if you didn't join in time\n\n" +
+          "**A player isn't joining**\n" +
+          "Wait for 5-7mins for all players to join, if you are waiting longer leave the lobby and join the queue again with a " + reactEmote +"reaction\n\n" +
+          "**What is the Game Mode?**\n" +
+          "5v5 Captains Mode\n\n" +
+          "**Can we play on a different server?**\n"+
+          "Both captains must agree on changing the default server for your region\n(NA = US East, EU = Luxembuorg)\n\n"+
+          "**Can I become a caster?**\n"+
+          "Yes! DM or ping one of the inhouse moderators and they can add you as a caster"
+      }});
+    }
+
     //help command
     else if(args[0] == prefix + "help"){
       if(args.length == 1){
@@ -650,13 +709,15 @@ client.on("message", message => {
 
             "**link** - linking MMR\n"+
             "**mmr** - check MMR\n"+
-            "**info** - extra help and info about the inhouse\n"+
+            "**faq** - frequently asked questions\n"+
             "**unsub** - removes yourself as a caster\n" +
             "**about** - about this bot\n"+
+            "**ping** - check if bot is alive\n" +
             "\nAdmin Only\n--------------------\n"+
             "**inhouse** - creating an inhouse\n"+
             "**mod** - add/remove a user as an inhouse moderator\n"+
-            "**caster** - mange the caster roles"
+            "**caster** - manage the caster roles\n"+
+            "**lobby** - view settings for a Dota lobby"
         }});
       }
 
@@ -698,6 +759,7 @@ client.on("message", message => {
             }
           });
         }
+
         else if(helpCommand == "caster"){
           message.reply({ embed : {
             color : color,

@@ -15,6 +15,7 @@ Creates an inhouse queue and sets up private match for Dota 2
   * admin can message all players in a match and tell them to remake
 * invite players to match using steamkit
 * get results of match
+* rules
 
 ## Features
 * Opens a queue
