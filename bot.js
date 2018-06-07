@@ -698,6 +698,18 @@ client.on("message", message => {
       }});
     }
 
+    else if(message.content.startsWith(prefix + "mail")){
+      let msg = message.content;
+      let commandLen = (prefix + "mail").length;
+      msg = msg.substr(commandLen, msg.length - commandLen);
+      let modChannel = client.channels.get(moderatorChannelID);
+      modChannel.send({ embed : {
+        color : color,
+        title : "💌 Mod Mail 💌",
+        description : message.author.username + " said:\n" + msg.trim()
+      }});
+    }
+
     //help command
     else if(args[0] == prefix + "help"){
       if(args.length == 1){
@@ -713,6 +725,7 @@ client.on("message", message => {
             "**unsub** - removes yourself as a caster\n" +
             "**about** - about this bot\n"+
             "**ping** - check if bot is alive\n" +
+            "**mail** - send the inhouse moderators a message\n"+
             "\nAdmin Only\n--------------------\n"+
             "**inhouse** - creating an inhouse\n"+
             "**mod** - add/remove a user as an inhouse moderator\n"+
@@ -782,6 +795,17 @@ client.on("message", message => {
             "You can add or remove a user as an inhouse moderator. If you want to add/remove yourself then mention yourself as @user\n\n"+
             "**" + prefix + "mod add @user** - add user as a moderator\n"+
             "**" + prefix + "mod remove @user** - remove user as a moderator\n"
+            }
+          });
+        }
+
+        else if(helpCommand == "mail"){
+          message.reply({ embed : {
+            color : color,
+            title : "Command Help - " + helpCommand,
+            description :
+            "Please ONLY use this for issues about the inhouse, example:\n\n"+
+            "**" + prefix + "mail I'm an unsatisfied punk**"
             }
           });
         }
