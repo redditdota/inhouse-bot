@@ -318,7 +318,7 @@ function createMatch(reaction, usersInQueue, lobbySize, title){
               title : "Match Started",
               description:
                   "**Create Lobby**:\n" +
-                  "Name: " + lobbyName + "\nPassword: " + lobbyPassword + "\n\n" +
+                  "```Name:      " + lobbyName + "\nPassword:  " + lobbyPassword + "```\n" +
                   "**AVG Match MMR**: " + avgMatchMMR + "\n\n" +
                   teamNames["a"] + " AVG MMR: " + teamAVGs["a"] + "\n" +
                   teamNames["b"] + " AVG MMR: " + teamAVGs["b"] + "\n" +
@@ -353,8 +353,10 @@ function createMatch(reaction, usersInQueue, lobbySize, title){
                 title : "Caster Notification",
                 description :
                   "Match Started!\nAVG MMR: " + avgMatchMMR + "\n\n" +
-                  "**Lobby**\nName: " + lobbyName + "\nPassword: " + lobbyPassword + "\n\n" +
-                  "**Note**: if the lobby doesn't exist yet please wait until the admin creates it",
+                  "**Lobby**\n"+
+                  "```Name:      " + lobbyName + "\nPassword:  " + lobbyPassword + "```\n" +
+                  "**Note**: if the lobby doesn't exist yet please wait until the admin creates it\n\n"+
+                  "You can remove yourself as a caster by using the command " + prefix + "unsub",
                 timestamp : new Date(),
                 footer : {
                   text : "Created at"
@@ -373,7 +375,7 @@ function createMatch(reaction, usersInQueue, lobbySize, title){
                     title : "Match Starting - Inhouse",
                     description : "Your Team: **" + teamNames[i] + "**\n"+
                       "\n**Join Lobby**:\n" +
-                      "Name: " + lobbyName + "\nPassword: " + lobbyPassword +
+                      "```Name:      " + lobbyName + "\nPassword:  " + lobbyPassword + "```\n" +
                       "\n\n**Note:** if the lobby doesn't exist yet, please wait for the admin to create it" +
                       "\n\n"+ teamTable + "\n\n"+
                       "Good luck have fun 😁"
@@ -559,6 +561,7 @@ function removeCasterSelf(message){
 //when the bot enters the ready state
 client.on("ready", () => {
   console.log(botName + " ready!");
+  setup();
 
   sql.get("SELECT * FROM inhouse WHERE isFinished=0").then(row => {
     if(row){
@@ -581,7 +584,10 @@ function setup(){
 
 //when a message is recieved
 client.on("message", message => {
-  setup();
+  //commands ignore dm channel
+  if(message.channel.type == "dm" || message.channel.type != "text"){
+    return;
+  }
 
   //command
   if(message.content.startsWith(prefix)){

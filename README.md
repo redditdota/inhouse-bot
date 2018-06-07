@@ -2,9 +2,9 @@
 Creates an inhouse queue and sets up private match for Dota 2
 
 ## Road Map
-* categorize players if the queue is bigger than 2 lobbies
-  * prioritize players with larger mmr and lower mmr to play together
-* move const info to config file
+* improve lobby join msg
+* team IDs
+
 
 ## Future Iterations
 * take into account the amount of time someone has been queuing
@@ -15,6 +15,7 @@ Creates an inhouse queue and sets up private match for Dota 2
 * invite players to match using steamkit
 * get results of match
 * rules
+* move const info to config file
 
 ## Features
 * Opens a queue
@@ -23,6 +24,9 @@ Creates an inhouse queue and sets up private match for Dota 2
 * Players get a notification when their match starts
 * Moderators and Casters get notifications when any match starts
 * Managing of caster and moderator roles
+* Generates a lobby name and password
+* Prioritize highest mmr players when enough players to fill multiple lobbies
+* Ends the queue
 
 ## Setup
 You will need NodeJS and to install the following npm modules:
