@@ -3,6 +3,7 @@ const client = new Discord.Client();
 const config = require("./config.json");
 const request = require('request');
 const sql = require("sqlite");
+const teamIDList = require("./teams.json");
 
 
 
@@ -256,6 +257,11 @@ function createMatch(reaction, usersInQueue, lobbySize, title){
           b : "Dire"
         }
 
+        let teamIDs = {
+          a : teamIDList.names[randomInt(0,teamIDList.names.length-1)],
+          b : teamIDList.names[randomInt(0,teamIDList.names.length-1)]
+        }
+
         let teamTable = "";
         let teamTableAdmin = "";
         let hasCaptain = false;
@@ -276,8 +282,8 @@ function createMatch(reaction, usersInQueue, lobbySize, title){
             //create string for teams
             for(let i in lobbyTeams){
               lobbyTeams[i] = getSortedTeamByMMR(lobbyTeams[i]); //sort each team by mmr
-              teamTable += "**" + teamNames[i] + "**\n----------------\n";
-              teamTableAdmin += teamNames[i] + "\n----------------\n";
+              teamTable += "**" + teamNames[i] + "** - Team " + teamIDs[i] + "\n----------------\n";
+              teamTableAdmin += "**" + teamNames[i] + "** - Team " + teamIDs[i] + "\n----------------\n";
               hasCaptain = false;
 
               for(let j in lobbyTeams[i]){
@@ -356,7 +362,7 @@ function createMatch(reaction, usersInQueue, lobbySize, title){
                   "**Lobby**\n"+
                   "```Name:      " + lobbyName + "\nPassword:  " + lobbyPassword + "```\n" +
                   "**Note**: if the lobby doesn't exist yet please wait until the admin creates it\n\n"+
-                  "You can remove yourself as a caster by using the command " + prefix + "unsub",
+                  "You can remove yourself as a caster by using the command '" + prefix + "unsub' in the inhouse discord server",
                 timestamp : new Date(),
                 footer : {
                   text : "Created at"
@@ -373,7 +379,7 @@ function createMatch(reaction, usersInQueue, lobbySize, title){
                   lobbyTeams[i][j].user.send({embed :{
                     color : color,
                     title : "Match Starting - Inhouse",
-                    description : "Your Team: **" + teamNames[i] + "**\n"+
+                    description : "Your Team: **" + teamNames[i] + "** - Team " + teamIDs[i] + "\n"+
                       "\n**Join Lobby**:\n" +
                       "```Name:      " + lobbyName + "\nPassword:  " + lobbyPassword + "```\n" +
                       "\n\n**Note:** if the lobby doesn't exist yet, please wait for the admin to create it" +
@@ -585,9 +591,10 @@ function setup(){
 //when a message is recieved
 client.on("message", message => {
   //commands ignore dm channel
-  if(message.channel.type == "dm" || message.channel.type != "text"){
+  if(message.channel.type !== "text"){
     return;
   }
+
 
   //command
   if(message.content.startsWith(prefix)){

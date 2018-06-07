@@ -2,8 +2,6 @@
 Creates an inhouse queue and sets up private match for Dota 2
 
 ## Road Map
-* improve lobby join msg
-* team IDs
 
 
 ## Future Iterations
@@ -16,6 +14,7 @@ Creates an inhouse queue and sets up private match for Dota 2
 * get results of match
 * rules
 * move const info to config file
+* make sure 2 teams don't generate the same name in the same inhouse
 
 ## Features
 * Opens a queue
