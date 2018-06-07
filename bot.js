@@ -476,6 +476,9 @@ function checkMMR(message, userID){
     if(row){
       message.author.send("MMR: " + row.mmr);
     }
+    else{
+      message.channel.send("No MMR found");
+    }
   }).catch(console.error);
 }
 
@@ -661,14 +664,16 @@ client.on("message", message => {
     else if(message.content.startsWith(prefix + "link")){
       //++link @user mmr
       if(args.length == 3){
+
         if(!isAdmin(message)){
           message.reply("Sorry you need to be an admin to use that command.\n"+
             "If you need to set your mmr contact an admin");
           return;
         }
         //validation
-        if(args[1].match(/\<@[0-9]+\>/g)){
-          let userID = args[1].substr(2,args[1].length-3);
+        let member = message.mentions.members.first();
+        if(member){
+          let userID = member.user.id;
           let mmr = parseInt(args[2]);
           if(isNaN(mmr)){
             message.reply("Error: MMR must be an whole number");
@@ -686,12 +691,44 @@ client.on("message", message => {
 
     else if(message.content.startsWith(prefix + "mmr")){
       if(args.length == 2){
+        let member = message.mentions.members.first();
         if(!isAdmin(message)){
           message.reply("You need to be an admin to use this command");
         }
-        else if(args[1].match(/\<@[0-9]+\>/g)){
-          let userID = args[1].substr(2,args[1].length-3);
-          checkMMR(message, userID);
+        else if(member){
+          checkMMR(message, member.user.id);
+        }
+        else if(args[1] == "list"){
+          sql.all("SELECT * FROM accounts LIMIT 50").then(rows => {
+            if(rows){
+              let msgStr = "";
+              for(let i=0; i<rows.length; i++){
+                msgStr += rows[i].userID + " : " +  rows[i].mmr + "\n";
+              }
+              message.channel.send({embed: {
+                color : color,
+                title : "MMR List",
+                description : msgStr
+              }});
+            }
+          }).catch(console.error);
+        }
+        else{
+          client.fetchUser(args[1]).then(user =>{
+            if(user){
+              sql.get("SELECT * FROM accounts WHERE userID='"+user.id+"'").then(row => {
+                if(row){
+                  message.channel.send(user.username + " : " + row.mmr);
+                }
+                else{
+                  message.reply("No MMR found for this user");
+                }
+              }).catch(console.error);
+            }
+            else{
+              message.reply("No discord user found with this ID");
+            }
+          })
         }
       }
       else if(args.length == 1){
@@ -724,8 +761,9 @@ client.on("message", message => {
         title : "Frequently Asked Questions",
         description :
           "**How do I link my MMR?**\n" +
-          "use the " + prefix + "link command if you already have an OpenDota account. "+
-          "However if you don't have an account, ping an inhouse moderator with a screenshot of your mmr and/or medal. They will link your mmr manually\n\n"+
+          "use the " + prefix + "link command if you already have an OpenDota account (opendota.com/profile/1234568 those numbers are your ID).\n\n"+
+          "**I Don't have an OpenDota account**\n"+
+          "if you don't have an account, ping an inhouse moderator with a screenshot of your in-game Dota profile showing your mmr and/or medal. They will link your mmr manually\n\n"+
           "**How to Join a Dota lobby?**\n" +
           "Click 'Play Dota' > View Lobbies > Search for the lobby > Join Lobby > Enter password\n\n"+
           "**I can't join my match**\n" +
@@ -737,7 +775,7 @@ client.on("message", message => {
           "**Can we play on a different server?**\n"+
           "Both captains must agree on changing the default server for your region\n(NA = US East, EU = Luxembuorg)\n\n"+
           "**Can I become a caster?**\n"+
-          "Yes! DM or ping one of the inhouse moderators and they can add you as a caster"
+          "Yes! use the "+prefix+"mail command and to tell the inhouse mods and they can add you as a caster"
       }});
     }
 
@@ -811,7 +849,10 @@ client.on("message", message => {
             title : "Command Help - " + helpCommand,
             description :
             "**" + prefix + "mmr** - gets your mmr\n"+
-            "**" + prefix + "mmr @user** - gets the users mmr (ADMIN ONLY)\n"
+            "\nAdmin Only\n----------------\n"+
+            "**" + prefix + "mmr @user** - gets the users mmr \n"+
+            "**" + prefix + "mmr list** - list all the users and their mmr\n" +
+            "**" + prefix + "mmr 1234456** - get a users MMR by their discord user id"
             }
           });
         }
