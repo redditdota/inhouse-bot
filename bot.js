@@ -35,7 +35,7 @@ Array.prototype.subarray=function(start,size){
    return arr;
 }
 
-//
+//inhouse commands
 function inhouse(message, args){
   if(args.length == 2){
     if(args[1] == "clear"){
@@ -100,14 +100,30 @@ function observeQueue(){
   let checkTime = 1000; //repeat time of the interval (milliseconds)
   observeInterval = client.setInterval(function(){
     sql.get("SELECT * FROM inhouse WHERE isFinished=0").then(row =>{
-      if(!row){
-      }
-      else{
+      if(row){
         let now = (new Date).getTime();
-        let endTime = now + row.duration;
+        let endTime = row.startTime + (row.duration * msPerMin);
+        let channel = client.channels.get(row.channelID);
+
+        //end of queue
+        if(now > endTime){
+          //set isFinished in the database to 1
+          sql.run("UPDATE inhouse SET isFinished=1 WHERE msgID='"+row.msgID+"' AND channelID='"+row.channelID+"'").then(()=>{
+            console.log("INHOUSE ENDED");
+            //leave message in channel saying that the queue is now closed
+            channel.send({ embed : {
+              color : color,
+              title : row.title + " is now over!",
+              description : "You can no longer queue for this inhouse\n\nThanks to everyone who competed! 😄\n",
+              timestamp : new Date(),
+              footer : {
+                text : "Ended at"
+              }
+            }});
+          }).catch(console.error);
+        }
 
         //find the message
-        let channel = client.channels.get(row.channelID);
         channel.fetchMessage(row.msgID).then(message => {
           message.reactions.forEach(function(reaction, key, map){
             //fetch the users with the matching emote
@@ -126,10 +142,6 @@ function observeQueue(){
                   //if the queue is not over try to create a match
                   if(now <= endTime && now >= row.startTime){
                     createMatch(reaction, usersInQueue, row.lobbySize, row.title);
-                  }
-                  else if(now > row.endTime){
-                    //leave message in channel saying that the queue is now closed
-                    //set isFinished in the database to 1
                   }
                 });
               }
@@ -191,7 +203,6 @@ function createMatch(reaction, usersInQueue, lobbySize, title){
       }
 
       //make sure we have 10 or more users with mmr linked
-      console.log("has_mmr length: " + Object.keys(users.has_mmr).length);
       if(Object.keys(users.has_mmr).length >= lobbySize){
         let lobby = [];
 
@@ -209,9 +220,6 @@ function createMatch(reaction, usersInQueue, lobbySize, title){
 
         let playersPerTeam = 5;
         let lobbyTeams = balanceLobby(lobby, playersPerTeam);
-        console.log(lobbyTeams);
-
-
 
         let teamNames = {
           a : "Radiant",
@@ -250,7 +258,6 @@ function createMatch(reaction, usersInQueue, lobbySize, title){
                     hasCaptain = true;
                   }
                   teamTable += lobbyTeams[i][j].user.username + captainStr + "\n";
-                  console.log(lobbyTeams[i][j].mmr);
                   teamTableAdmin += lobbyTeams[i][j].mmr + " : " + lobbyTeams[i][j].user.username + captainStr + "\n";
                 }
               }
@@ -347,10 +354,10 @@ function createMatch(reaction, usersInQueue, lobbySize, title){
               "INSERT INTO matches (inhouseID, matchNum, time, avgMMR) VALUES (?, ?, ?, ?)",
               [inhouseID, matchIndex, (new Date).getTime(), avgMatchMMR]
             ).catch(console.error);
+
+            console.log("MATCH CREATED: " + avgMatchMMR + " AVG MMR");
           }).catch(console.error);
         }).catch(console.error);
-
-        console.log("MATCH CREATED:\n" + teamTableAdmin);
       }
       //for now ignore users with no mmr linked
       else{

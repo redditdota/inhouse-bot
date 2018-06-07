@@ -4,8 +4,8 @@ Creates an inhouse queue and sets up private match for Dota 2
 ## Road Map
 * categorize players if the queue is bigger than 2 lobbies
   * prioritize players with larger mmr and lower mmr to play together
-* close the queue once the time has concluded
 * add extra info
+* move const info to config file
 
 ## Future Iterations
 * take into account the amount of time someone has been queuing
