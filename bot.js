@@ -208,17 +208,47 @@ function createMatch(reaction, usersInQueue, lobbySize, title){
 
         //populate a lobby
         let playersNeeded = lobbySize;
-        for(let i in users.has_mmr){
-          if(playersNeeded <= 0){
-            break;
-          }
-          else{
-            lobby.push(users.has_mmr[i]);
-            playersNeeded -= 1;
+
+        //if less than 15 players, just add players based on the reaction queue
+        let prioritizeMMRLimit = lobbySize + lobbySize/2;
+        let userCountWithMMR = Object.keys(users.has_mmr).length;
+        if(userCountWithMMR < prioritizeMMRLimit){
+          for(let i in users.has_mmr){
+            if(playersNeeded <= 0){
+              break;
+            }
+            else{
+              lobby.push(users.has_mmr[i]);
+              playersNeeded -= 1;
+            }
           }
         }
+        //pick the players with the highest mmr
+        else if(userCountWithMMR >= prioritizeMMRLimit){
+          //order players by mmr, make the lobby the top 10 mmr players
+          let ordered = [];
+          for(let u in users.has_mmr){
+            let index = 0;
+            let flag = true;
+            do{
+              if(ordered.length <= index || users.has_mmr[u].mmr > ordered[index].mmr){
+                ordered.splice(index, 0, users.has_mmr[u]);
+                flag = false;
+              }
+              else{
+                index++;
+              }
+            }while(index < ordered.length && flag);
+          }
 
-        let playersPerTeam = 5;
+          lobby = ordered.splice(0, lobbySize);
+        }
+
+
+        let playersPerTeam = lobbySize*0.5;
+        if(!Number.isInteger(playersPerTeam)){
+          playersPerTeam = parseInt(playersPerTeam)+1;
+        }
         let lobbyTeams = balanceLobby(lobby, playersPerTeam);
 
         let teamNames = {
