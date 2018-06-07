@@ -18,6 +18,7 @@ const adminRoles = ["Moderators", "Discord Mods"];
 //moderators will get more info
 const moderatorRoleName = "inhouse-moderator";
 const casterRoleName = "inhouse-caster";
+const moderatorChannelID = "454116595271335941";
 
 const inhouseID = "rdota2";
 
@@ -271,35 +272,38 @@ function createMatch(reaction, usersInQueue, lobbySize, title){
             let avgMatchMMR = (teamAVGs["a"] + teamAVGs["b"])/2;
             let diffInMMR = Math.abs(teamAVGs["a"] - teamAVGs["b"]);
 
-            moderators.forEach(function(moderator, key, map){
-              moderator.send({ embed: {
-                color : color,
-                title : "Match Started",
-                description:
-                    "**Create Lobby**:\n" +
-                    "Name: " + lobbyName + "\nPassword: " + lobbyPassword + "\n\n" +
-                    "**AVG Match MMR**: " + avgMatchMMR + "\n\n" +
-                    teamNames["a"] + " AVG MMR: " + teamAVGs["a"] + "\n" +
-                    teamNames["b"] + " AVG MMR: " + teamAVGs["b"] + "\n" +
-                    "Diff AVG MMR: " + diffInMMR + "\n" +
-                    "Match Index : " + matchIndex,
-                  timestamp : new Date(),
-                  footer : {
-                    text : "Created at"
-                  }
-              }});
+            //send messages to mod channel
+            let modChannel = client.channels.get(moderatorChannelID);
 
-              moderator.send({ embed: {
-                color : color,
-                title : "Teams",
-                description:
-                    teamTableAdmin,
-                  timestamp : new Date(),
-                  footer : {
-                    text : "Created at"
-                  }
-              }});
-            });
+            modChannel.send({ embed: {
+              color : color,
+              title : "Match Started",
+              description:
+                  "**Create Lobby**:\n" +
+                  "Name: " + lobbyName + "\nPassword: " + lobbyPassword + "\n\n" +
+                  "**AVG Match MMR**: " + avgMatchMMR + "\n\n" +
+                  teamNames["a"] + " AVG MMR: " + teamAVGs["a"] + "\n" +
+                  teamNames["b"] + " AVG MMR: " + teamAVGs["b"] + "\n" +
+                  "Diff AVG MMR: " + diffInMMR + "\n" +
+                  "Match Index : " + matchIndex,
+                timestamp : new Date(),
+                footer : {
+                  text : "Created at"
+                }
+            }});
+
+            modChannel.send({ embed: {
+              color : color,
+              title : "Teams",
+              description:
+                  teamTableAdmin,
+                timestamp : new Date(),
+                footer : {
+                  text : "Created at"
+                }
+            }});
+
+            modChannel.send("-------------");
 
             //notify all casters on the match
             let casterRole =  reaction.message.guild.roles.find("name",  casterRoleName);
@@ -326,8 +330,8 @@ function createMatch(reaction, usersInQueue, lobbySize, title){
                 if(lobbyTeams[i][j].user){
                   lobbyTeams[i][j].user.send({embed :{
                     color : color,
-                    title : "Inhouse",
-                    description : "Team: **" + teamNames[i] + "**\n"+
+                    title : "Match Starting - Inhouse",
+                    description : "Your Team: **" + teamNames[i] + "**\n"+
                       "\n**Join Lobby**:\n" +
                       "Name: " + lobbyName + "\nPassword: " + lobbyPassword +
                       "\n\n**Note:** if the lobby doesn't exist yet, please wait for the admin to create it" +
