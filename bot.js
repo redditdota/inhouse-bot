@@ -65,7 +65,7 @@ function inhouse(message, args){
       description :
         "React with " + reactEmote + " to queue for a match!\n\n" +
         "**Lobby size**: " + lobbySize + "\n" +
-        "**Starts at**: " + new Date((new Date).getTime() + (initalDelay * msPerMin)).toLocaleString() + "\n" +
+        "**Starts at**: " + new Date((new Date).getTime() + (initalDelay * msPerMin)).toUTCString() + "\n" +
         "**Duration**: " + duration + "mins",
       timestamp :  new Date((new Date).getTime() + ((initalDelay + duration) * msPerMin)),
       footer: {
@@ -98,7 +98,7 @@ function observeQueue(){
     return;
   }
 
-  let checkTime = 1000; //repeat time of the interval (milliseconds)
+  let checkTime = 10000; //repeat time of the interval (milliseconds)
   observeInterval = client.setInterval(function(){
     sql.get("SELECT * FROM inhouse WHERE isFinished=0").then(row =>{
       if(row){
