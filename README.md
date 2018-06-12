@@ -56,11 +56,11 @@ Creates an inhouse queue and sets up private match for Dota 2
 
 
 * Linking MMR
- * Players will be kicked from the queue if they don't have their MMR linked
- * Players can link their MMR through OpenDota using their steam32ID
-   * e.g. opendota.com/12345678 ++link 1234565678
- * Admins can alternatively set a players mmr manually with this command
-   * ++link @user 2500
+  * Players will be kicked from the queue if they don't have their MMR linked
+  * Players can link their MMR through OpenDota using their steam32ID
+    * e.g. opendota.com/12345678 ++link 1234565678
+  * Admins can alternatively set a players mmr manually with this command
+    * ++link @user 2500
 
 
 * More:
