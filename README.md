@@ -36,9 +36,9 @@ Creates an inhouse queue and sets up private match for Dota 2
 
 
 * Casters
- * Admins can set a discord user as a caster
- * casters will get a DM when any match starts
- * DM info:
+  * Admins can set a discord user as a caster
+  * casters will get a DM when any match starts
+  * DM info:
     * AVG MMR
     * Teams
     * Captains
